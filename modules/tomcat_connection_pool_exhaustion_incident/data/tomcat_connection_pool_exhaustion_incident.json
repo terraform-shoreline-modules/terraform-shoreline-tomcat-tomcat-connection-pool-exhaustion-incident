@@ -1,0 +1,138 @@
+{
+  "name": "tomcat_connection_pool_exhaustion_incident",
+  "description": "Tomcat Connection Pool Exhaustion Incident occurs when the maximum number of connections that a Tomcat server can handle has been reached. This can happen due to an increase in traffic or a sudden surge in user activity. When the connection pool is exhausted, new requests cannot be handled, and the application may become unavailable. This type of incident requires immediate attention to ensure that the application is restored to its normal functioning state.",
+  "params": [
+    {
+      "name": "PATH_TO_TOMCAT_CONFIG_FILE",
+      "value": ""
+    },
+    {
+      "name": "WEBAPP_NAME",
+      "value": ""
+    },
+    {
+      "name": "PASSWORD",
+      "value": ""
+    },
+    {
+      "name": "VERSION",
+      "value": ""
+    },
+    {
+      "name": "USERNAME",
+      "value": ""
+    },
+    {
+      "name": "PATH_TO_TOMCAT",
+      "value": ""
+    },
+    {
+      "name": "NEW_CONNECTION_POOL_SIZE",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Tomcat Connection Pool Exhaustion Incident\nTomcat Connection Pool Exhaustion Incident occurs when the maximum number of connections that a Tomcat server can handle has been reached. This can happen due to an increase in traffic or a sudden surge in user activity. When the connection pool is exhausted, new requests cannot be handled, and the application may become unavailable. This type of incident requires immediate attention to ensure that the application is restored to its normal functioning state."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if Tomcat server is running"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `systemctl status tomcat ${VERSION}`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if there are any errors in the Tomcat logs"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `tail -n 100 /var/log/tomcat${VERSION}/catalina.out`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the number of active database connections"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `sudo -u postgres psql -c \"SELECT datname,numbackends FROM pg_stat_database;\"`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the maximum number of connections allowed in the connection pool configuration"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `grep \"maxActive\" /opt/tomcat${VERSION}/conf/context.xml`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the current number of open connections in the connection pool"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `curl -u ${USERNAME}:${PASSWORD} http://localhost:8080/manager/jmxproxy/?get=Tomcat%3Atype%3DDatasource%2Ccontext%3D%2F${WEBAPP_NAME}%2Chost%3Dlocalhost&att=Active`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the available memory on the server"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `free -m`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Increase the connection pool size to accommodate more incoming connections."
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_tomcat_config_update($PATH_TO_TOMCAT_CONFIG_FILE, $PATH_TO_TOMCAT, $NEW_CONNECTION_POOL_SIZE)"
+    }
+  ]
+}
